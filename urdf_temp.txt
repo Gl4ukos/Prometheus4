@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<robot name="arm_4dof">
+
+  <!-- ================= BASE ================= -->
+  <link name="base">
+    <visual>
+      <geometry>
+        <mesh filename="4_dof_meshes/base.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- Base → Shoulder (Yaw around Z) -->
+  <joint name="joint1_base_yaw" type="revolute">
+    <parent link="base"/>
+    <child link="shoulder"/>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- ================= SHOULDER ================= -->
+  <link name="shoulder">
+    <visual>
+      <geometry>
+        <mesh filename="4_dof_meshes/shoulder.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- Shoulder → Arm (Pitch around X) -->
+  <joint name="joint2_shoulder_pitch" type="revolute">
+    <parent link="shoulder"/>
+    <child link="arm"/>
+    <origin xyz="0 0 0.15" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- ================= ARM ================= -->
+  <link name="arm">
+    <visual>
+      <geometry>
+        <mesh filename="4_dof_meshes/arm.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- Arm → Forearm (Pitch around X) -->
+  <joint name="joint3_elbow_pitch" type="revolute">
+    <parent link="arm"/>
+    <child link="forearm"/>
+    <origin xyz="0 0 0.3" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-2.5" upper="2.5" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- ================= FOREARM ================= -->
+  <link name="forearm">
+    <visual>
+      <geometry>
+        <mesh filename="4_dof_meshes/forearm.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- Forearm → Wrist (Pitch around X) -->
+  <joint name="joint4_wrist_pitch" type="revolute">
+    <parent link="forearm"/>
+    <child link="wrist"/>
+    <origin xyz="0 0 0.25" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- ================= WRIST / EE ================= -->
+  <link name="wrist">
+    <visual>
+      <geometry>
+        <mesh filename="4_dof_meshes/wrist.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+
+</robot>
