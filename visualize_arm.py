@@ -3,6 +3,8 @@ import pybullet_data
 import time
 import numpy as np
 
+
+# ---------- Collision visual cloning ----------
 def spawn_collision_visuals(body_id):
     visuals = []
 
@@ -18,53 +20,75 @@ def spawn_collision_visuals(body_id):
             local_ori = s[6]
 
             if geom_type == p.GEOM_BOX:
-                vis = p.createVisualShape(
+                vis_shape = p.createVisualShape(
                     p.GEOM_BOX,
                     halfExtents=dims,
-                    rgbaColor=[1, 0, 0, 0.3]
+                    rgbaColor=[1, 0, 0, 1]  # opaque for debugging
                 )
 
             elif geom_type == p.GEOM_CYLINDER:
-                vis = p.createVisualShape(
+                vis_shape = p.createVisualShape(
                     p.GEOM_CYLINDER,
                     radius=dims[0],
                     length=dims[1],
-                    rgbaColor=[0, 0, 1, 0.3]
+                    rgbaColor=[0, 0, 1, 1]
                 )
             else:
                 continue
 
-            mb = p.createMultiBody(
+            vis_body = p.createMultiBody(
                 baseMass=0,
-                baseVisualShapeIndex=vis,
+                baseVisualShapeIndex=vis_shape,
                 basePosition=[0, 0, 0],
                 baseOrientation=[0, 0, 0, 1]
             )
 
-            visuals.append((mb, link_id, local_pos, local_ori))
+            visuals.append((vis_body, link_id, local_pos, local_ori))
 
     return visuals
 
 
-
+# ---------- PyBullet setup ----------
 p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
-arm = p.loadURDF("urdf/arm_4dof.urdf", useFixedBase=True)
-collision_visuals = spawn_collision_visuals(arm)
-
-ee_link = 4
 p.setGravity(0, 0, 0)
 
+# Load robot WITH self-collision enabled
+arm = p.loadURDF(
+    "urdf/arm_4dof.urdf",
+    useFixedBase=True,
+    flags=p.URDF_USE_SELF_COLLISION
+)
+
+# Spawn collision visual clones
+collision_visuals = spawn_collision_visuals(arm)
+print("Collision visuals:", len(collision_visuals))
+
+# Arm info
+joint_ids = [0, 1, 2, 3]
+ee_link = 4
+
+# Initial safe pose
+current_angles = np.zeros(4)
+
+
+# ---------- Main loop ----------
 while True:
-    proposed_angles = [
-        np.sin(time.time()/8) * 1.0,
-        np.sin(time.time()/5) * 0.7,
-        np.sin(time.time()/2) * 2.0,
-        np.sin(time.time()/1) * 3.0
+    # --- propose motion (4 DOF ONLY) ---
+    proposed_angles = np.array([
+        np.sin(time.time() / 8) * 1.0,
+        np.sin(time.time() / 5) * 0.7,
+        np.sin(time.time() / 2) * 2.0,
+        np.sin(time.time() / 1) * 3.0
+    ])
 
-    ]
+    # --- TEST pose ---
+    for j, a in enumerate(proposed_angles):
+        p.resetJointState(arm, j, a)
 
+    p.stepSimulation()
+
+    # --- update collision visuals AFTER motion ---
     for vis, link_id, local_pos, local_ori in collision_visuals:
         if link_id == -1:
             pos, ori = p.getBasePositionAndOrientation(arm)
@@ -78,31 +102,29 @@ while True:
 
         p.resetBasePositionAndOrientation(vis, world_pos, world_ori)
 
+    # --- collision check ---
+    contacts = p.getContactPoints(arm, arm)
 
-    for j, a in enumerate(proposed_angles):
-        p.resetJointState(arm, j, a)
-
-    p.stepSimulation()
-
-    # --- Collision check ---
-    contacts = p.getContactPoints(bodyA=arm, bodyB=arm)
     if len(contacts) == 0:
+        print("OK")
         current_angles = proposed_angles
     else:
+        print("COLLISION")
         for j, a in enumerate(current_angles):
             p.resetJointState(arm, j, a)
 
+        # visualize contact points (debug)
+        for c in contacts:
+            p.addUserDebugLine(
+                c[5], c[6],
+                [1, 0, 0],
+                lineWidth=3,
+                lifeTime=0.1
+            )
 
-    ee_state = p.getLinkState(
-        arm,
-        ee_link,
-        computeForwardKinematics=True
-    )
+    # --- end effector state ---
+    ee_state = p.getLinkState(arm, ee_link, computeForwardKinematics=True)
+    ee_pos = ee_state[4]
+    # print("EE:", ee_pos)
 
-    ee_pos = ee_state[4]   # world position (x, y, z)
-    ee_ori = ee_state[5]   # world orientation (quaternion)
-
-    print(f"EE pos: {ee_pos}")
-    time.sleep(1./240.)
-
-    
+    time.sleep(1. / 240.)
