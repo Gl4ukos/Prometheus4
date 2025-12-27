@@ -60,9 +60,6 @@ arm = p.loadURDF(
     flags=p.URDF_USE_SELF_COLLISION
 )
 
-# Spawn collision visual clones
-collision_visuals = spawn_collision_visuals(arm)
-print("Collision visuals:", len(collision_visuals))
 
 # Arm info
 joint_ids = [0, 1, 2, 3]
@@ -76,10 +73,10 @@ current_angles = np.zeros(4)
 while True:
     # --- propose motion (4 DOF ONLY) ---
     proposed_angles = np.array([
-        np.sin(time.time() / 8) * 1.0,
-        np.sin(time.time() / 5) * 0.7,
-        np.sin(time.time() / 2) * 2.0,
-        np.sin(time.time() / 1) * 3.0
+        np.sin(time.time() / 8) * 0.0,
+        np.sin(time.time() / 5) * 0.0,
+        np.sin(time.time() / 2) * 0.0,
+        np.sin(time.time() / 1) * 0.0
     ])
 
     # --- TEST pose ---
@@ -87,20 +84,6 @@ while True:
         p.resetJointState(arm, j, a)
 
     p.stepSimulation()
-
-    # --- update collision visuals AFTER motion ---
-    for vis, link_id, local_pos, local_ori in collision_visuals:
-        if link_id == -1:
-            pos, ori = p.getBasePositionAndOrientation(arm)
-        else:
-            pos, ori = p.getLinkState(arm, link_id)[4:6]
-
-        world_pos, world_ori = p.multiplyTransforms(
-            pos, ori,
-            local_pos, local_ori
-        )
-
-        p.resetBasePositionAndOrientation(vis, world_pos, world_ori)
 
     # --- collision check ---
     contacts = p.getContactPoints(arm, arm)
