@@ -73,10 +73,10 @@ current_angles = np.zeros(4)
 while True:
     # --- propose motion (4 DOF ONLY) ---
     proposed_angles = np.array([
-        np.sin(time.time() / 8) * 0.0,
-        np.sin(time.time() / 5) * 0.0,
-        np.sin(time.time() / 2) * 0.0,
-        np.sin(time.time() / 1) * 0.0
+        np.sin(time.time() / 3) * 3.0,
+        max(np.sin(time.time() / 2) * 1.5, -0.5),
+        max(np.sin(time.time() / 1) * 2.5, 1.2),
+        np.sin(time.time() / 1) * 6.0
     ])
 
     # --- TEST pose ---
