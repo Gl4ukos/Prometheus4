@@ -8,6 +8,13 @@
         <mesh filename="4_dof_meshes/base.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
+
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.0 2.0 0.05"/>
+      </geometry>
+    </collision>
   </link>
 
   <!-- Base → Shoulder (Yaw around Z) -->
@@ -26,7 +33,16 @@
         <mesh filename="4_dof_meshes/shoulder.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
+
+    <collision>
+      <origin xyz="0.128 0 0.25" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.125 0.22 0.25"/>
+      </geometry>
+    </collision>
   </link>
+
+
 
   <!-- Shoulder → Arm (Pitch around X) -->
   <joint name="joint2_shoulder_pitch" type="revolute">
@@ -44,7 +60,22 @@
         <mesh filename="4_dof_meshes/arm_trans.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
+
+    <collision>
+      <origin xyz="-0.128 0 0.65"/>
+      <geometry>
+        <box size="0.125 0.125 0.75"/>
+      </geometry>
+    </collision>
+
+    <collision>
+      <origin xyz="-0.125 0.36 1.225" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.0 0.0 0.0"/>
+      </geometry>
+    </collision>
   </link>
+
 
 
   <!-- Arm → Forearm (Pitch around X) -->
@@ -53,7 +84,7 @@
     <child link="forearm"/>
     <origin xyz="0 0.4 1.225" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
-    <limit lower="-2.5" upper="2.5" effort="10" velocity="1"/>
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="1"/>
   </joint>
 
   <!-- ================= FOREARM ================= -->
@@ -63,7 +94,15 @@
         <mesh filename="4_dof_meshes/forearm_trans.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
+
+    <collision>
+      <origin xyz="0.128 0.0 -0.43" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.1 0.15 0.58"/>
+      </geometry>
+    </collision>
   </link>
+
 
 
   <!-- Forearm → Wrist (Pitch around X) -->
@@ -75,13 +114,40 @@
     <limit lower="-1.57" upper="1.57" effort="10" velocity="1"/>
   </joint>
 
-  <!-- ================= WRIST / EE ================= -->
+  <!-- ================= WRIST ================= -->
   <link name="wrist">
     <visual>
       <geometry>
         <mesh filename="4_dof_meshes/wrist_trans.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
+
+    <collision>
+      <origin xyz="-0.15 0.0 0.29" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.125 0.145 0.45"/>
+      </geometry>
+    </collision>
   </link>
+
+  <!-- wrist → ee -->
+  <joint name="wrist_ee" type="fixed">
+    <parent link="wrist"/>
+    <child link="end_effector"/>
+    <origin xyz="0 -0.01 0.6" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+
+  <!-- ================= EE ================= -->
+  <link name="end_effector">
+    <visual>
+      <geometry>
+        <mesh filename="4_dof_meshes/end_effector_trans.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+
+
+
 
 </robot>
