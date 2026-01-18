@@ -87,11 +87,18 @@ current_ee = np.array(ee_state[4])
 target_ee = current_ee.copy()
 set_target_pos(target_ee)
 
+LOWER_EE = np.array([-MAX_X, -MAX_Y, -MAX_Z])
+UPPER_EE = np.array([ MAX_X,  MAX_Y,  MAX_Z])
+
 while True:
     keys = p.getKeyboardEvents()
     for key, (i, d) in key_map.items():
         if key in keys and keys[key] & p.KEY_IS_DOWN:
-            target_ee[i] = np.clip(target_ee[i] + d, 0, [MAX_X, MAX_Y, MAX_Z][i])
+            target_ee[i] = np.clip(
+                target_ee[i] + d,
+                LOWER_EE[i],
+                UPPER_EE[i]
+            )
             set_target_pos(target_ee)
 
     # get current EE
