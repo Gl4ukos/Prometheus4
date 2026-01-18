@@ -87,6 +87,9 @@ current_ee = np.array(ee_state[4])
 target_ee = current_ee.copy()
 set_target_pos(target_ee)
 
+home_joints = current_joints.copy()
+home_ee = current_ee.copy()
+
 LOWER_EE = np.array([-MAX_X, -MAX_Y, -MAX_Z])
 UPPER_EE = np.array([ MAX_X,  MAX_Y,  MAX_Z])
 
