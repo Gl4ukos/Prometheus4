@@ -1,9 +1,10 @@
 import pybullet as p
 import pybullet_data
 import numpy as np
+import math as m
 
-# --- Setup ---
-p.connect(p.DIRECT)  # no GUI = faster
+# --- PyBullet setup ---
+p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, 0)
 
@@ -16,32 +17,43 @@ arm = p.loadURDF(
 joint_ids = [0, 1, 2, 3]
 ee_link = 4
 
-lower = np.array([-3.14, -1.57, -3.14, -1.57])
-upper = np.array([ 3.14,  1.57,  3.14,  1.57])
+lower = np.array([-m.pi, -m.pi, -m.pi, -m.pi])
+upper = np.array([ m.pi,  m.pi,  m.pi,  m.pi])
 
 N = 100_000
+X = []  # inputs
+Y = []  # outputs
 
-X = []  # inputs: (x,y,z)
-Y = []  # outputs: joint angles
+# small delta to start near target
+delta = 0.1
+iterations = 5
 
-for _ in range(N):
-    angles = np.random.uniform(lower, upper)
-
-    for j, a in enumerate(angles):
+while len(X) < N:
+    # --- target configuration ---
+    target_joints = np.random.uniform(lower, upper)
+    for j, a in enumerate(target_joints):
         p.resetJointState(arm, j, a)
-
-    # check self-collision
-    if len(p.getContactPoints(arm, arm)) > 0:
+    if p.getContactPoints(arm, arm):
         continue
+    target_ee = p.getLinkState(arm, ee_link, computeForwardKinematics=True)[4]
 
-    ee_pos = p.getLinkState(arm, ee_link)[4]
+    # --- starting configuration near target ---
+    for _ in range(iterations):
+        start_joints = target_joints + np.random.uniform(-delta, delta, size=4)
+        for j, a in enumerate(start_joints):
+            p.resetJointState(arm, j, a)
+        if p.getContactPoints(arm, arm):
+            continue
+        start_ee = p.getLinkState(arm, ee_link, computeForwardKinematics=True)[4]
 
-    X.append(ee_pos)
-    Y.append(angles)
+        # --- record data ---
+        inp = np.concatenate([start_joints, start_ee, target_ee])
+        X.append(inp)
+        Y.append(target_joints)
 
 X = np.array(X)
 Y = np.array(Y)
 
 np.savez("ik_dataset.npz", X=X, Y=Y)
-
 p.disconnect()
+print("Dataset saved. Shape:", X.shape, Y.shape)

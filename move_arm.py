@@ -3,6 +3,8 @@ import pybullet_data
 import time
 import numpy as np
 
+
+
 # ---------- PyBullet setup ----------
 p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -63,5 +65,9 @@ while True:
         # optional: show collision points
         for c in contacts:
             p.addUserDebugLine(c[5], c[6], [1, 0, 0], lineWidth=3, lifeTime=0.1)
+
+    ee_state = p.getLinkState(arm, ee_link, computeForwardKinematics=True)
+    ee_pos = ee_state[4]
+    print("EE:", ee_pos)
 
     time.sleep(1. / 240.)

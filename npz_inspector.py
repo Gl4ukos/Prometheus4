@@ -1,12 +1,16 @@
 import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
 
 data = np.load("ik_dataset.npz")
 
-X = data["X"]   # (N, 3)
+X = data["X"]   # (N, 10)
 Y = data["Y"]   # (N, 4)
 
 print("X shape:", X.shape)
 print("Y shape:", Y.shape)
 
-print("First 5 EE positions:\n", X[:5])
-print("First 5 joint angles:\n", Y[:5])
+print(" X :\n", X[:15])
+print(" Y :\n", Y[:15])
+
