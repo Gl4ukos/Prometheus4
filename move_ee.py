@@ -6,6 +6,15 @@ import pybullet as p
 import pybullet_data
 import time
 
+
+def euclidean_dist(point1, point2):
+    x = point1[0] - point2[0]
+    y = point1[1] - point2[1]
+    z = point1[2] - point2[2]
+
+    diff = math.sqrt(x**2 + y**2 + z**2)
+    return diff
+
 # ---------- PyBullet setup ----------
 p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -17,12 +26,16 @@ arm = p.loadURDF(
     flags=p.URDF_USE_SELF_COLLISION
 )
 
+
 joint_ids = [0, 1, 2, 3]
 ee_link = 4
 
 MAX_X = 3.0
 MAX_Y = 3.0
 MAX_Z = 3.2
+
+DEVIATION_HARDCAP = 0.5
+DEVIATION_SOFTCAP = 0.2
 
 # --- EE target marker ---
 sphere_radius = 0.03
@@ -93,8 +106,25 @@ home_ee = current_ee.copy()
 LOWER_EE = np.array([-MAX_X, -MAX_Y, -MAX_Z])
 UPPER_EE = np.array([ MAX_X,  MAX_Y,  MAX_Z])
 
+
+deviation =0.0
+def home_arm():
+    global current_joints, current_ee, target_ee
+
+    current_joints = home_joints.copy()
+    current_ee = home_ee.copy()
+    target_ee = home_ee.copy()
+
+    set_target_pos(home_ee)
+
+    for j in joint_ids:
+        p.resetJointState(arm, j, home_joints[j])
+
+
 while True:
     keys = p.getKeyboardEvents()
+
+    # --- keyboard control ---
     for key, (i, d) in key_map.items():
         if key in keys and keys[key] & p.KEY_IS_DOWN:
             target_ee[i] = np.clip(
@@ -104,18 +134,30 @@ while True:
             )
             set_target_pos(target_ee)
 
-    # get current EE
+    # --- state update ---
     ee_state = p.getLinkState(arm, ee_link, computeForwardKinematics=True)
     current_ee = np.array(ee_state[4])
+
+    deviation = euclidean_dist(target_ee, current_ee)
+
+    # --- deviation handling ---
+    if deviation > DEVIATION_HARDCAP:
+        print(f"EXCESSIVE DEVIATION ({deviation:.3f}) → HOMING")
+        home_arm()
+        time.sleep(0.5)
+        continue
+
+    elif deviation > DEVIATION_SOFTCAP:
+        print(f"WARNING: HIGH DEVIATION ({deviation:.3f})")
 
     # --- ML IK ---
     target_joints = ml_ik(current_joints, current_ee, target_ee)
 
-    # apply joints iteratively
-    step_fraction = 0.2  # apply fraction of delta for stability
-    for j in range(4):
-        current_joints[j] += step_fraction * (target_joints[j] - current_joints[j])
+    step_fraction = 0.2
+    current_joints += step_fraction * (target_joints - current_joints)
+
+    for j in joint_ids:
         p.resetJointState(arm, j, current_joints[j])
 
     p.stepSimulation()
-    time.sleep(1./240.)
+    time.sleep(1.0 / 240.0)
