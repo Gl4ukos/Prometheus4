@@ -26,7 +26,6 @@ arm = p.loadURDF(
     flags=p.URDF_USE_SELF_COLLISION
 )
 
-
 joint_ids = [0, 1, 2, 3]
 ee_link = 4
 
@@ -120,7 +119,35 @@ def home_arm():
     for j in joint_ids:
         p.resetJointState(arm, j, home_joints[j])
 
+def ee_loss(angles, target_ee):
+    for j in joint_ids:
+        p.resetJointState(arm, j, angles[j])
+    ee = np.array(p.getLinkState(arm, ee_link, True)[4])
+    return np.linalg.norm(ee - target_ee)
 
+
+def numerical_gradient(angles, target_ee, eps=1e-4):
+    grad = np.zeros_like(angles)
+    base_loss = ee_loss(angles, target_ee)
+
+    for i in range(len(angles)):
+        angles_eps = angles.copy()
+        angles_eps[i] += eps
+        grad[i] = (ee_loss(angles_eps, target_ee) - base_loss) / eps
+
+    return grad
+
+def refine_with_gd(angles, target_ee, lr=0.05, steps=3):
+    refined = angles.copy()
+
+    for _ in range(steps):
+        grad = numerical_gradient(refined, target_ee)
+        refined -= lr * grad
+
+    return refined
+
+
+ML_THRESHOLD = 0.02
 while True:
     keys = p.getKeyboardEvents()
 
@@ -150,11 +177,24 @@ while True:
     elif deviation > DEVIATION_SOFTCAP:
         print(f"WARNING: HIGH DEVIATION ({deviation:.3f})")
 
-    # --- ML IK ---
-    target_joints = ml_ik(current_joints, current_ee, target_ee)
+    if deviation > ML_THRESHOLD:
+        # ML prediction
+        target_joints = ml_ik(current_joints, current_ee, target_ee)
 
-    step_fraction = 0.2
-    current_joints += step_fraction * (target_joints - current_joints)
+        # move partially toward ML guess
+        step_fraction = 0.2
+        proposed_joints = current_joints + step_fraction * (target_joints - current_joints)
+
+        # gradient descent refinement
+        #refined_joints = refine_with_gd(proposed_joints, target_ee, lr=0.05, steps=2)
+
+        current_joints = proposed_joints
+        print("ML")
+
+    else:
+        print("noop")
+
+
 
     for j in joint_ids:
         p.resetJointState(arm, j, current_joints[j])
